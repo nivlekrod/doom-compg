@@ -154,8 +154,8 @@ void desenhaPiramideDegraus()
 
     double eq[4];
 
-    // metade de cima: ciano
-    glColor3f(0.0f, 1.0f, 1.0f);
+    // metade de cima
+    glColor3f(0.40f, 0.00f, 0.00f);
     eq[0] = 0;
     eq[1] = -1;
     eq[2] = 0;
@@ -165,8 +165,8 @@ void desenhaPiramideDegraus()
     glutSolidSphere(raioEsfera, 40, 40);
     glDisable(GL_CLIP_PLANE0);
 
-    // metade de baixo: ciano mais claro
-    glColor3f(0.5f, 1.0f, 1.0f);
+    // metade de baixo
+    glColor3f(0.80f, 0.00f, 0.00f);
     eq[0] = 0;
     eq[1] = 1;
     eq[2] = 0;
