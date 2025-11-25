@@ -1,9 +1,19 @@
+#include <GL/glew.h>
 #include <GL/glut.h>
 #include <math.h>
 #include "scene.h"
+#include <cstdio>
 
 #define NUM_TORRES 5
-#define RAIO 10.0f // raio das torres ao redor do centro
+#define RAIO 15.0f // raio das torres ao redor do centro
+
+extern GLuint texChao;
+extern GLuint texTorre;
+extern GLuint texDegrau;
+extern GLuint texEsfera;
+extern GLuint texLava;
+extern GLuint progEsfera;
+extern GLuint progLava;
 
 static void desenhaLosango(float altura)
 {
@@ -60,12 +70,20 @@ static void desenhaLosango(float altura)
 
 void desenhaChao()
 {
-    glColor3f(0.2f, 0.2f, 0.2f);
+    glBindTexture(GL_TEXTURE_2D, texChao);
+    glColor3f(1, 1, 1);
+
+    float tiles = 75.0f;
+
     glBegin(GL_QUADS);
-    glVertex3f(-80.0f, 0.0f, -80.0f);
-    glVertex3f(80.0f, 0.0f, -80.0f);
-    glVertex3f(80.0f, 0.0f, 80.0f);
-    glVertex3f(-80.0f, 0.0f, 80.0f);
+    glTexCoord2f(0, 0);
+    glVertex3f(-80, 0, -80);
+    glTexCoord2f(tiles, 0);
+    glVertex3f(80, 0, -80);
+    glTexCoord2f(tiles, tiles);
+    glVertex3f(80, 0, 80);
+    glTexCoord2f(0, tiles);
+    glVertex3f(-80, 0, 80);
     glEnd();
 }
 
@@ -88,13 +106,70 @@ void desenhaTorresELosangos()
 
         // Torre roxa
         glPushMatrix();
-        glColor3f(0.6f, 0.0f, 0.8f);
+        glBindTexture(GL_TEXTURE_2D, texTorre);
+        glColor3f(1.0f, 1.0f, 1.0f); // não “tingir” a textura
         glTranslatef(0.0f, alturaTorre / 2.0f, 0.0f);
         glScalef(w, alturaTorre, w);
-        glutSolidCube(1.0f);
+
+        float half = 0.5f;   // cubo unitário de -0.5 a 0.5
+        float tilesX = 1.0f; // repete 1x na horizontal
+        float tilesY = 2.0f; // repete 2x na vertical (ajuste se quiser)
+
+        glBegin(GL_QUADS);
+        // Frente (z positivo)
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-half, -half, half);
+        glTexCoord2f(tilesX, 0.0f);
+        glVertex3f(half, -half, half);
+        glTexCoord2f(tilesX, tilesY);
+        glVertex3f(half, half, half);
+        glTexCoord2f(0.0f, tilesY);
+        glVertex3f(-half, half, half);
+
+        // Trás (z negativo)
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(half, -half, -half);
+        glTexCoord2f(tilesX, 0.0f);
+        glVertex3f(-half, -half, -half);
+        glTexCoord2f(tilesX, tilesY);
+        glVertex3f(-half, half, -half);
+        glTexCoord2f(0.0f, tilesY);
+        glVertex3f(half, half, -half);
+
+        // Direita (x positivo)
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(half, -half, half);
+        glTexCoord2f(tilesX, 0.0f);
+        glVertex3f(half, -half, -half);
+        glTexCoord2f(tilesX, tilesY);
+        glVertex3f(half, half, -half);
+        glTexCoord2f(0.0f, tilesY);
+        glVertex3f(half, half, half);
+
+        // Esquerda (x negativo)
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-half, -half, -half);
+        glTexCoord2f(tilesX, 0.0f);
+        glVertex3f(-half, -half, half);
+        glTexCoord2f(tilesX, tilesY);
+        glVertex3f(-half, half, half);
+        glTexCoord2f(0.0f, tilesY);
+        glVertex3f(-half, half, -half);
+
+        // Topo
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-half, half, half);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(half, half, half);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(half, half, -half);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-half, half, -half);
+
+        glEnd();
         glPopMatrix();
 
-        // Losango verde girando em cima 
+        // Losango verde girando em cima
         glPushMatrix();
         glTranslatef(0.0f, alturaTorre + 1.2f, 0.0f);
         glRotatef(anguloPiramide, 0.0f, 1.0f, 0.0f);
@@ -110,73 +185,313 @@ void desenhaPiramideDegraus()
     float alturaDegrau = 0.5f;
     float tamanhoBase = 6.0f;
     float reducao = 0.65f;
+    float raioLava = 12.0f;
+    float elevacao = 0.001f;
+    int segmentos = 64;     // mais = círculo mais suave
+    float tilesLava = 6.0f; // quantas vezes a textura se repete
 
     glPushMatrix();
 
-    float roxo1[3] = {0.55f, 0.00f, 0.75f};
-    float roxo2[3] = {0.65f, 0.10f, 0.85f};
-    float roxo3[3] = {0.75f, 0.20f, 0.95f};
+    // Degrau 0
+    glUseProgram(progLava);
+
+    GLint locTimeLava = glGetUniformLocation(progLava, "uTime");
+    GLint locStrLava = glGetUniformLocation(progLava, "uStrength");
+    GLint locScrollLava = glGetUniformLocation(progLava, "uScroll");
+    GLint locHeatLava = glGetUniformLocation(progLava, "uHeat");
+    GLint locTexLava = glGetUniformLocation(progLava, "uTexture");
+
+    glUniform1f(locTimeLava, tempoEsfera);
+    glUniform1f(locStrLava, 1.0f);
+    glUniform2f(locScrollLava, 0.1f, 0.0f);
+    glUniform1f(locHeatLava, 0.5f);
+
+    glBindTexture(GL_TEXTURE_2D, texLava);
+    glUniform1i(locTexLava, 0);
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+
+    glBegin(GL_TRIANGLE_FAN);
+
+    // Centro do círculo
+    glTexCoord2f(0.5f, 0.5f);
+
+    glVertex3f(0.0f, elevacao, 0.0f);
+
+    for (int i = 0; i <= segmentos; i++)
+    {
+        float ang = (float)i / segmentos * 2.0f * M_PI;
+        float x = cosf(ang) * raioLava;
+        float z = sinf(ang) * raioLava;
+
+        // UV radial
+        float u = 0.5f + cosf(ang) * 0.5f * tilesLava;
+        float v = 0.5f + sinf(ang) * 0.5f * tilesLava;
+
+        glTexCoord2f(u, v);
+        glVertex3f(x, elevacao, z);
+    }
+
+    glEnd();
+
+    glUseProgram(0);
+
+    // vamos usar um cubo unitário de -0.5 a 0.5
+    float half = 0.5f;
 
     // Degrau 1
-    glColor3f(roxo1[0], roxo1[1], roxo1[2]);
+    float larg = tamanhoBase;    // largura/profundidade
+    float tilesX = larg;         // repetição em X
+    float tilesZ = larg;         // repetição em Z
+    float tilesY = alturaDegrau; // repetição em Y (altura)
+
+    glBindTexture(GL_TEXTURE_2D, texDegrau);
+    glColor3f(1.0f, 1.0f, 1.0f);
+
     glPushMatrix();
     glTranslatef(0.0f, alturaDegrau / 2.0f, 0.0f);
     glScalef(tamanhoBase, alturaDegrau, tamanhoBase);
-    glutSolidCube(1.0f);
+
+    glBegin(GL_QUADS);
+    // Frente (z+)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, -half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, -half, half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(half, half, half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(-half, half, half);
+
+    // Trás (z-)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(half, -half, -half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(-half, -half, -half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(-half, half, -half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(half, half, -half);
+
+    // Direita (x+)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(half, -half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, -half, -half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(half, half, -half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(half, half, half);
+
+    // Esquerda (x-)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, -half, -half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(-half, -half, half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(-half, half, half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(-half, half, -half);
+
+    // Topo
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, half, half);
+    glTexCoord2f(tilesX, tilesZ);
+    glVertex3f(half, half, -half);
+    glTexCoord2f(0.0f, tilesZ);
+    glVertex3f(-half, half, -half);
+
+    glEnd();
+
     glPopMatrix();
 
     // Degrau 2
-    glColor3f(roxo2[0], roxo2[1], roxo2[2]);
+    larg = tamanhoBase * reducao;
+    tilesX = larg;
+    tilesZ = larg;
+    tilesY = alturaDegrau;
+
+    glBindTexture(GL_TEXTURE_2D, texDegrau);
+    glColor3f(1.0f, 1.0f, 1.0f);
+
     glPushMatrix();
     glTranslatef(0.0f, alturaDegrau + alturaDegrau / 2.0f, 0.0f);
     glScalef(tamanhoBase * reducao, alturaDegrau, tamanhoBase * reducao);
-    glutSolidCube(1.0f);
+
+    glBegin(GL_QUADS);
+    // Frente (z+)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, -half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, -half, half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(half, half, half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(-half, half, half);
+
+    // Trás (z-)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(half, -half, -half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(-half, -half, -half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(-half, half, -half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(half, half, -half);
+
+    // Direita (x+)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(half, -half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, -half, -half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(half, half, -half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(half, half, half);
+
+    // Esquerda (x-)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, -half, -half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(-half, -half, half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(-half, half, half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(-half, half, -half);
+
+    // Topo
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, half, half);
+    glTexCoord2f(tilesX, tilesZ);
+    glVertex3f(half, half, -half);
+    glTexCoord2f(0.0f, tilesZ);
+    glVertex3f(-half, half, -half);
+    glEnd();
+
     glPopMatrix();
 
     // Degrau 3
-    glColor3f(roxo3[0], roxo3[1], roxo3[2]);
+    larg = tamanhoBase * reducao * reducao;
+    tilesX = larg;
+    tilesZ = larg;
+    tilesY = alturaDegrau;
+
+    glBindTexture(GL_TEXTURE_2D, texDegrau);
+    glColor3f(1.0f, 1.0f, 1.0f);
+
     glPushMatrix();
     glTranslatef(0.0f, 2 * alturaDegrau + alturaDegrau / 2.0f, 0.0f);
     glScalef(tamanhoBase * reducao * reducao,
              alturaDegrau,
              tamanhoBase * reducao * reducao);
-    glutSolidCube(1.0f);
+
+    glBegin(GL_QUADS);
+    // Frente (z+)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, -half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, -half, half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(half, half, half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(-half, half, half);
+
+    // Trás (z-)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(half, -half, -half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(-half, -half, -half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(-half, half, -half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(half, half, -half);
+
+    // Direita (x+)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(half, -half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, -half, -half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(half, half, -half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(half, half, half);
+
+    // Esquerda (x-)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, -half, -half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(-half, -half, half);
+    glTexCoord2f(tilesX, tilesY);
+    glVertex3f(-half, half, half);
+    glTexCoord2f(0.0f, tilesY);
+    glVertex3f(-half, half, -half);
+
+    // Topo
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-half, half, half);
+    glTexCoord2f(tilesX, 0.0f);
+    glVertex3f(half, half, half);
+    glTexCoord2f(tilesX, tilesZ);
+    glVertex3f(half, half, -half);
+    glTexCoord2f(0.0f, tilesZ);
+    glVertex3f(-half, half, -half);
+    glEnd();
+
     glPopMatrix();
 
     // Esfera flutuando acima
     float topoDegrausY = 5.0f * alturaDegrau;
     float raioEsfera = 3.0f;
 
+    glUseProgram(progEsfera);
+
+    // uniforms básicos
+    GLint locTimeBlood = glGetUniformLocation(progEsfera, "uTime");
+    GLint locStrBlood = glGetUniformLocation(progEsfera, "uStrength");
+    GLint locSpeedBlood = glGetUniformLocation(progEsfera, "uSpeed");
+    GLint locTexBlood = glGetUniformLocation(progEsfera, "uTexture");
+
+    glUniform1f(locTimeBlood, tempoEsfera);
+    glUniform1f(locStrBlood, 1.0f);
+    glUniform2f(locSpeedBlood, 3.0f, 1.7f);
+
     glPushMatrix();
     glTranslatef(0.0f, topoDegrausY + raioEsfera + 0.2f, 0.0f);
+    glRotatef(anguloEsfera, 1.0f, 1.0f, 0.0f);
 
-    glRotatef(anguloEsfera, 1.0f, 1.5f, 0.0f);
+    glBindTexture(GL_TEXTURE_2D, texEsfera);
+    glUniform1i(locTexBlood, 0);
 
-    double eq[4];
+    // Ajuste da escala da textura na esfera
+    glMatrixMode(GL_TEXTURE);
+    glPushMatrix();
+    // valores < 1.0f deixam a textura MENOS repetida (mais esticada)
+    glScalef(1.5f, 1.5f, 1.0f);
+    glMatrixMode(GL_MODELVIEW);
 
-    // metade de cima
-    glColor3f(0.40f, 0.00f, 0.00f);
-    eq[0] = 0;
-    eq[1] = -1;
-    eq[2] = 0;
-    eq[3] = 0;
-    glClipPlane(GL_CLIP_PLANE0, eq);
-    glEnable(GL_CLIP_PLANE0);
-    glutSolidSphere(raioEsfera, 40, 40);
-    glDisable(GL_CLIP_PLANE0);
+    static GLUquadric *quad = nullptr;
+    if (!quad)
+    {
+        quad = gluNewQuadric();
+        gluQuadricTexture(quad, GL_TRUE);   // gera coordenadas de textura
+        gluQuadricNormals(quad, GL_SMOOTH); // normais suaves (pra iluminação no futuro)
+    }
 
-    // metade de baixo
-    glColor3f(0.80f, 0.00f, 0.00f);
-    eq[0] = 0;
-    eq[1] = 1;
-    eq[2] = 0;
-    eq[3] = 0;
-    glClipPlane(GL_CLIP_PLANE1, eq);
-    glEnable(GL_CLIP_PLANE1);
-    glutSolidSphere(raioEsfera, 40, 40);
-    glDisable(GL_CLIP_PLANE1);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    gluSphere(quad, raioEsfera, 40, 40);
+
+    // voltar a matriz de textura ao normal
+    glMatrixMode(GL_TEXTURE);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 
     glPopMatrix();
+
+    glUseProgram(0);
 
     glPopMatrix();
 }

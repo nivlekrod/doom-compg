@@ -1,15 +1,27 @@
+#include <GL/glew.h>
 #include <GL/glut.h>
 #include <math.h>
 #include <cstdio>
 #include "scene.h"
 #include "input.h"
+#include "texture.h"
+#include "shader.h"
 
 float anguloPiramide = 0.0f;
 float anguloEsfera = 0.0f;
+float tempoEsfera = 0.0f;
 
 int fps = 0;
 int frameCount = 0;
 int previousTime = 0;
+
+GLuint texChao;
+GLuint texTorre;
+GLuint texDegrau;
+GLuint texEsfera;
+GLuint texLava;
+GLuint progEsfera;
+GLuint progLava;
 
 void display()
 {
@@ -74,9 +86,11 @@ void timer(int v)
     if (anguloPiramide >= 360.0f)
         anguloPiramide -= 360.0f;
 
-    anguloEsfera += 10.0f;
+    anguloEsfera += 1.0f;
     if (anguloEsfera >= 360.0f)
         anguloEsfera -= 360.0f;
+
+    tempoEsfera += 0.016f;
 
     atualizaMovimento();
 
@@ -92,7 +106,27 @@ int main(int argc, char **argv)
     glutInitWindowSize(janelaW, janelaH);
     glutCreateWindow("Um dia vai ser DOOM");
 
+    GLenum err = glewInit();
+    if (err != GLEW_OK)
+    {
+        printf("Erro GLEW: %s\n", glewGetErrorString(err));
+        return 1;
+    }
+
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+
+    // carregando texturas
+    texChao = carregaTextura("assets/181.png");
+    texTorre = carregaTextura("assets/091.png");
+    texDegrau = carregaTextura("assets/190.png");
+    texEsfera = carregaTextura("assets/016.png");
+    texLava = carregaTextura("assets/179.png");
+
+    // cria o shader
+    progEsfera = criaShader("shaders/blood.vert", "shaders/blood.frag");
+    progLava = criaShader("shaders/lava.vert", "shaders/lava.frag");
+
     glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
 
     glutDisplayFunc(display);
@@ -105,7 +139,6 @@ int main(int argc, char **argv)
 
     glutTimerFunc(0, timer, 0);
 
-    // glutFullScreen();
     glutMainLoop();
     return 0;
 }
