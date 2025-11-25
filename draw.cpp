@@ -8,6 +8,7 @@
 extern GLuint texChao;
 extern GLuint texTorre;
 extern GLuint texDegrau;
+extern GLuint texEsfera;
 
 static void desenhaLosango(float altura)
 {
@@ -395,32 +396,32 @@ void desenhaPiramideDegraus()
 
     glPushMatrix();
     glTranslatef(0.0f, topoDegrausY + raioEsfera + 0.2f, 0.0f);
+    glRotatef(anguloEsfera, 0.0f, 1.0f, 0.0f);
 
-    glRotatef(anguloEsfera, 1.0f, 1.5f, 0.0f);
+    glBindTexture(GL_TEXTURE_2D, texEsfera);
 
-    double eq[4];
+    // Ajuste da escala da textura na esfera
+    glMatrixMode(GL_TEXTURE);
+    glPushMatrix();
+    // valores < 1.0f deixam a textura MENOS repetida (mais esticada)
+    glScalef(1.5f, 1.5f, 1.0f);
+    glMatrixMode(GL_MODELVIEW);
 
-    // metade de cima
-    glColor3f(0.40f, 0.00f, 0.00f);
-    eq[0] = 0;
-    eq[1] = -1;
-    eq[2] = 0;
-    eq[3] = 0;
-    glClipPlane(GL_CLIP_PLANE0, eq);
-    glEnable(GL_CLIP_PLANE0);
-    glutSolidSphere(raioEsfera, 40, 40);
-    glDisable(GL_CLIP_PLANE0);
+    static GLUquadric *quad = nullptr;
+    if (!quad)
+    {
+        quad = gluNewQuadric();
+        gluQuadricTexture(quad, GL_TRUE);   // gera coordenadas de textura
+        gluQuadricNormals(quad, GL_SMOOTH); // normais suaves (pra iluminação no futuro)
+    }
 
-    // metade de baixo
-    glColor3f(0.80f, 0.00f, 0.00f);
-    eq[0] = 0;
-    eq[1] = 1;
-    eq[2] = 0;
-    eq[3] = 0;
-    glClipPlane(GL_CLIP_PLANE1, eq);
-    glEnable(GL_CLIP_PLANE1);
-    glutSolidSphere(raioEsfera, 40, 40);
-    glDisable(GL_CLIP_PLANE1);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    gluSphere(quad, raioEsfera, 40, 40);
+
+    // voltar a matriz de textura ao normal
+    glMatrixMode(GL_TEXTURE);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 
     glPopMatrix();
 

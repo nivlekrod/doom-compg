@@ -80,7 +80,7 @@ void timer(int v)
     if (anguloPiramide >= 360.0f)
         anguloPiramide -= 360.0f;
 
-    anguloEsfera += 10.0f;
+    anguloEsfera += 2.0f;
     if (anguloEsfera >= 360.0f)
         anguloEsfera -= 360.0f;
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     texChao = carregaTextura("assets/181.png"); 
     texTorre = carregaTextura("assets/091.png");
     texDegrau = carregaTextura("assets/190.png");
-    texEsfera = carregaTextura("assets/540.png");
+    texEsfera = carregaTextura("assets/016.png");
 
     glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
 
