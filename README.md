@@ -4,6 +4,9 @@ Este projeto utiliza **OpenGL (pipeline fixo + GLSL 1.20)** para renderização,
 **GLUT** para gerenciamento de janela/entrada e **GLEW** para carregar funções modernas  
 como shaders, VBOs e extensões necessárias.
 
+## 🎥 Demonstração
+https://github.com/user-attachments/assets/e42eb186-d471-4aed-8c69-9c8bc67b3ab3
+
 ---
 
 ## 📦 Dependências
