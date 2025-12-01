@@ -20,8 +20,10 @@ GLuint texTorre;
 GLuint texDegrau;
 GLuint texEsfera;
 GLuint texLava;
+GLuint texFogo;
 GLuint progEsfera;
 GLuint progLava;
+GLuint progFogo;
 
 void display()
 {
@@ -118,14 +120,16 @@ int main(int argc, char **argv)
 
     // carregando texturas
     texChao = carregaTextura("assets/181.png");
-    texTorre = carregaTextura("assets/091.png");
+    texTorre = carregaTextura("assets/013.png");
     texDegrau = carregaTextura("assets/190.png");
     texEsfera = carregaTextura("assets/016.png");
     texLava = carregaTextura("assets/179.png");
+    texFogo = carregaTextura("assets/293.png");
 
     // cria o shader
     progEsfera = criaShader("shaders/blood.vert", "shaders/blood.frag");
     progLava = criaShader("shaders/lava.vert", "shaders/lava.frag");
+    progFogo = criaShader("shaders/fire.vert", "shaders/fire.frag");
 
     glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
 

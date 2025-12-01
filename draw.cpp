@@ -12,8 +12,10 @@ extern GLuint texTorre;
 extern GLuint texDegrau;
 extern GLuint texEsfera;
 extern GLuint texLava;
+extern GLuint texFogo;
 extern GLuint progEsfera;
 extern GLuint progLava;
+extern GLuint progFogo;
 
 static void desenhaBicicleta()
 {
@@ -165,50 +167,65 @@ static void desenhaLosango(float altura)
     float h = altura / 2.0f;
     float s = altura / 3.0f;
 
-    float claro[3] = {0.3f, 1.0f, 0.3f};
-    float escuro[3] = {0.0f, 0.6f, 0.0f};
+    glColor3f(1.0f, 1.0f, 1.0f);
 
     glBegin(GL_TRIANGLES);
     // metade de cima
-    glColor3fv(claro);
+    glTexCoord2f(0.5f, 1.0f);
     glVertex3f(0.0f, h, 0.0f);
+    glTexCoord2f(0.0f, 0.5f);
     glVertex3f(-s, 0.0f, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, s);
 
-    glColor3fv(escuro);
+    glTexCoord2f(0.5f, 1.0f);
     glVertex3f(0.0f, h, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, s);
+    glTexCoord2f(1.0f, 0.5f);
     glVertex3f(s, 0.0f, 0.0f);
 
-    glColor3fv(claro);
+    glTexCoord2f(0.5f, 1.0f);
     glVertex3f(0.0f, h, 0.0f);
+    glTexCoord2f(1.0f, 0.5f);
     glVertex3f(s, 0.0f, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, -s);
 
-    glColor3fv(escuro);
+    glTexCoord2f(0.5f, 1.0f);
     glVertex3f(0.0f, h, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, -s);
+    glTexCoord2f(0.0f, 0.5f);
     glVertex3f(-s, 0.0f, 0.0f);
 
     // metade de baixo
-    glColor3fv(claro);
+    glTexCoord2f(0.5f, 0.0f);
     glVertex3f(0.0f, -h, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, s);
+    glTexCoord2f(0.0f, 0.5f);
     glVertex3f(-s, 0.0f, 0.0f);
 
-    glColor3fv(escuro);
+    glTexCoord2f(0.5f, 0.0f);
     glVertex3f(0.0f, -h, 0.0f);
+    glTexCoord2f(1.0f, 0.5f);
     glVertex3f(s, 0.0f, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, s);
 
-    glColor3fv(claro);
+    glTexCoord2f(0.5f, 0.0f);
     glVertex3f(0.0f, -h, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, -s);
+    glTexCoord2f(1.0f, 0.5f);
     glVertex3f(s, 0.0f, 0.0f);
 
-    glColor3fv(escuro);
+    glTexCoord2f(0.5f, 0.0f);
     glVertex3f(0.0f, -h, 0.0f);
+    glTexCoord2f(0.0f, 0.5f);
     glVertex3f(-s, 0.0f, 0.0f);
+    glTexCoord2f(0.5f, 0.5f);
     glVertex3f(0.0f, 0.0f, -s);
     glEnd();
 }
@@ -272,7 +289,7 @@ void desenhaTorresELosangos()
 
         float half = 0.5f;   // cubo unitário de -0.5 a 0.5
         float tilesX = 1.0f; // repete 1x na horizontal
-        float tilesY = 2.0f; // repete 2x na vertical (ajuste se quiser)
+        float tilesY = 1.2f; // repete 2x na vertical (ajuste se quiser)
 
         glBegin(GL_QUADS);
         // Frente (z positivo)
@@ -328,11 +345,30 @@ void desenhaTorresELosangos()
         glEnd();
         glPopMatrix();
 
-        // Losango verde girando em cima
+        // Losango com shader de fogo girando em cima
         glPushMatrix();
         glTranslatef(0.0f, alturaTorre + 1.2f, 0.0f);
         glRotatef(anguloPiramide, 0.0f, 1.0f, 0.0f);
+        
+        glUseProgram(progFogo);
+        glBindTexture(GL_TEXTURE_2D, texFogo);
+        
+        float tempo = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        GLint locTime = glGetUniformLocation(progFogo, "uTime");
+        GLint locStrength = glGetUniformLocation(progFogo, "uStrength");
+        GLint locScroll = glGetUniformLocation(progFogo, "uScroll");
+        GLint locIntensity = glGetUniformLocation(progFogo, "uIntensity");
+        GLint locTexture = glGetUniformLocation(progFogo, "uTexture");
+        
+        if (locTime >= 0) glUniform1f(locTime, tempo);
+        if (locStrength >= 0) glUniform1f(locStrength, 1.0f);
+        if (locScroll >= 0) glUniform2f(locScroll, 0.0f, 0.1f);
+        if (locIntensity >= 0) glUniform1f(locIntensity, 0.8f);
+        if (locTexture >= 0) glUniform1i(locTexture, 0);
+        
         desenhaLosango(1.5f);
+        
+        glUseProgram(0);
         glPopMatrix();
 
         glPopMatrix();
