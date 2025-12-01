@@ -6,6 +6,7 @@
 
 GLuint carregaTextura(const char *arquivo)
 {
+    stbi_set_flip_vertically_on_load(true);
     int largura, altura, canais;
 
     unsigned char *dados = stbi_load(arquivo, &largura, &altura, &canais, 3);
