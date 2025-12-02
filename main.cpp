@@ -6,6 +6,7 @@
 #include "input.h"
 #include "texture.h"
 #include "shader.h"
+#include "particle.h"
 
 float anguloPiramide = 0.0f;
 float anguloEsfera = 0.0f;
@@ -94,6 +95,9 @@ void timer(int v)
 
     tempoEsfera += 0.016f;
 
+    // avança a simulação das partículas de fogo
+    atualizaParticulasFogo(0.016f);
+
     atualizaMovimento();
 
     glutPostRedisplay();
@@ -130,6 +134,9 @@ int main(int argc, char **argv)
     progEsfera = criaShader("shaders/blood.vert", "shaders/blood.frag");
     progLava = criaShader("shaders/lava.vert", "shaders/lava.frag");
     progFogo = criaShader("shaders/fire.vert", "shaders/fire.frag");
+
+    // sistema de partículas didático para o fogo dos losangos
+    iniciaParticulasFogo(250);
 
     glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
 

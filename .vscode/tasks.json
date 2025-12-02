@@ -12,6 +12,7 @@
                 "scene.cpp",
                 "texture.cpp",
                 "shader.cpp",
+                "particle.cpp",
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",

@@ -2,6 +2,7 @@
 #include <GL/glut.h>
 #include <math.h>
 #include "scene.h"
+#include "particle.h"
 #include <cstdio>
 
 #define NUM_TORRES 5
@@ -369,6 +370,16 @@ void desenhaTorresELosangos()
         desenhaLosango(1.5f);
         
         glUseProgram(0);
+
+        // Partículas de fogo saindo do topo do losango
+        glPushMatrix();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glDepthMask(GL_FALSE);
+        desenhaParticulasFogo();
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glPopMatrix();
         glPopMatrix();
 
         glPopMatrix();
