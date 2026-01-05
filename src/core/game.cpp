@@ -11,7 +11,6 @@
 
 #include <cmath>
 
-// Expostos pro drawlevel.cpp (você já usa extern lá)
 GLuint texChao;
 GLuint texParede;
 GLuint texSangue;
@@ -25,7 +24,6 @@ GLuint progLava;
 
 float tempo = 0.0f;
 
-// Estado interno do jogo
 static GameAssets gAssets;
 static Level gLevel;
 
@@ -38,7 +36,6 @@ bool gameInit(const char *mapPath)
     if (!loadAssets(gAssets))
         return false;
 
-    // publica os ids (pra manter compat com seu drawlevel.cpp atual)
     texChao = gAssets.texChao;
     texParede = gAssets.texParede;
     texSangue = gAssets.texSangue;
@@ -56,7 +53,6 @@ bool gameInit(const char *mapPath)
     applySpawn(gLevel, camX, camZ);
     camY = GameConfig::PLAYER_EYE_Y;
 
-    // input (opcional: pode ficar no app também)
     glutKeyboardFunc(keyboard);
     glutKeyboardUpFunc(keyboardUp);
     glutPassiveMotionFunc(mouseMotion);
@@ -80,7 +76,6 @@ void gameRender()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    // câmera (a mesma lógica que você já tinha)
     float radYaw = yaw * 3.14159265f / 180.0f;
     float radPitch = pitch * 3.14159265f / 180.0f;
 
