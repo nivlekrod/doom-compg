@@ -165,6 +165,81 @@ static void desenhaTileChao(float x, float z, GLuint texChaoX, bool temTeto)
     }
 }
 
+static bool isIndoorTile(char c)
+{
+    return (c == '2' || c == '3');
+}
+
+static void desenhaFaceParede(float x, float z, float half, int faceIndex, float tilesX, float tilesY)
+{
+    glBegin(GL_QUADS);
+    
+    switch (faceIndex)
+    {
+        case 0: // Frente (z+)
+            glNormal3f(0.0f, 0.0f, 1.0f);
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex3f(x - half, 0.0f, z + half);
+            glTexCoord2f(tilesX, 0.0f);
+            glVertex3f(x + half, 0.0f, z + half);
+            glTexCoord2f(tilesX, tilesY);
+            glVertex3f(x + half, WALL_H, z + half);
+            glTexCoord2f(0.0f, tilesY);
+            glVertex3f(x - half, WALL_H, z + half);
+            break;
+            
+        case 1: // Trás (z-)
+            glNormal3f(0.0f, 0.0f, -1.0f);
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex3f(x + half, 0.0f, z - half);
+            glTexCoord2f(tilesX, 0.0f);
+            glVertex3f(x - half, 0.0f, z - half);
+            glTexCoord2f(tilesX, tilesY);
+            glVertex3f(x - half, WALL_H, z - half);
+            glTexCoord2f(0.0f, tilesY);
+            glVertex3f(x + half, WALL_H, z - half);
+            break;
+            
+        case 2: // Direita (x+)
+            glNormal3f(1.0f, 0.0f, 0.0f);
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex3f(x + half, 0.0f, z + half);
+            glTexCoord2f(tilesX, 0.0f);
+            glVertex3f(x + half, 0.0f, z - half);
+            glTexCoord2f(tilesX, tilesY);
+            glVertex3f(x + half, WALL_H, z - half);
+            glTexCoord2f(0.0f, tilesY);
+            glVertex3f(x + half, WALL_H, z + half);
+            break;
+            
+        case 3: // Esquerda (x-)
+            glNormal3f(-1.0f, 0.0f, 0.0f);
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex3f(x - half, 0.0f, z - half);
+            glTexCoord2f(tilesX, 0.0f);
+            glVertex3f(x - half, 0.0f, z + half);
+            glTexCoord2f(tilesX, tilesY);
+            glVertex3f(x - half, WALL_H, z + half);
+            glTexCoord2f(0.0f, tilesY);
+            glVertex3f(x - half, WALL_H, z - half);
+            break;
+            
+        case 4: // Topo
+            glNormal3f(0.0f, 1.0f, 0.0f);
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex3f(x - half, WALL_H, z + half);
+            glTexCoord2f(1.0f, 0.0f);
+            glVertex3f(x + half, WALL_H, z + half);
+            glTexCoord2f(1.0f, 1.0f);
+            glVertex3f(x + half, WALL_H, z - half);
+            glTexCoord2f(0.0f, 1.0f);
+            glVertex3f(x - half, WALL_H, z - half);
+            break;
+    }
+    
+    glEnd();
+}
+
 static void desenhaParede(float x, float z, GLuint texParedeX)
 {
     float half = TILE * 0.5f;
@@ -233,6 +308,61 @@ static void desenhaParede(float x, float z, GLuint texParedeX)
     glVertex3f(x - half, WALL_H, z - half);
 
     glEnd();
+}
+
+static void desenhaParedeFronteira(float x, float z, float wx, float wz, GLuint texParedeX,
+                                     const MapLoader &map, int tileX, int tileZ)
+{
+    float half = TILE * 0.5f;
+    float tilesX = 1.0f;
+    float tilesY = 2.0f;
+    
+    const auto &data = map.data();
+    int H = map.getHeight();
+    
+    glColor3f(1, 1, 1);
+    glBindTexture(GL_TEXTURE_2D, texParedeX);
+    
+    // Verifica vizinhos: [z+1, z-1, x+1, x-1]
+    // Se vizinho é OUTDOOR, a face voltada para ele deve receber luz do SOL
+    bool adjOutdoor[4] = {false, false, false, false};
+    
+    if (tileZ + 1 < H && tileX < (int)data[tileZ + 1].size())
+        adjOutdoor[0] = !isIndoorTile(data[tileZ + 1][tileX]);
+    else
+        adjOutdoor[0] = true; // fora dos limites = outdoor
+        
+    if (tileZ - 1 >= 0 && tileX < (int)data[tileZ - 1].size())
+        adjOutdoor[1] = !isIndoorTile(data[tileZ - 1][tileX]);
+    else
+        adjOutdoor[1] = true;
+        
+    if (tileX + 1 < (int)data[tileZ].size())
+        adjOutdoor[2] = !isIndoorTile(data[tileZ][tileX + 1]);
+    else
+        adjOutdoor[2] = true;
+        
+    if (tileX - 1 >= 0)
+        adjOutdoor[3] = !isIndoorTile(data[tileZ][tileX - 1]);
+    else
+        adjOutdoor[3] = true;
+    
+    // Desenha cada face com iluminação apropriada
+    for (int face = 0; face < 5; face++)
+    {
+        if (face < 4 && !adjOutdoor[face])
+        {
+            // Vizinho é indoor, então essa face está voltada para dentro
+            beginIndoor(wx, wz);
+            desenhaFaceParede(x, z, half, face, tilesX, tilesY);
+            endIndoor();
+        }
+        else
+        {
+            // Vizinho é outdoor (ou é o topo), então usa luz do sol
+            desenhaFaceParede(x, z, half, face, tilesX, tilesY);
+        }
+    }
 }
 
 static void desenhaTileLava(float x, float z)
@@ -311,9 +441,7 @@ void drawLevel(const MapLoader &map)
                 desenhaParede(wx, wz, texParede);
             else if (c == '2') // parede B (indoor)
             {
-                beginIndoor(wx, wz);
-                desenhaParede(wx, wz, texParedeInterna);
-                endIndoor();
+                desenhaParedeFronteira(wx, wz, wx, wz, texParedeInterna, map, x, z);
             }
             else if (c == 'L')
             {
