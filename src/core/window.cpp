@@ -1,25 +1,16 @@
 #include <GL/glut.h>
-#include "scene.h"
+#include "core/window.h"
+#include "input/keystate.h"
 
+// Tamanho inicial
 int janelaW = 1920;
 int janelaH = 1080;
+
+// Centro (atualizado em reshape)
 int centerX = janelaW / 2;
 int centerY = janelaH / 2;
 
-float camX = 0.0f;
-float camY = 1.5f;
-float camZ = 25.0f;
-float yaw = 0.0f;
-float pitch = 0.0f;
-
-bool ignoreWarp = false;
-bool firstMouse = true;
-
-bool keyW = false;
-bool keyA = false;
-bool keyS = false;
-bool keyD = false;
-
+// Estado do fullscreen
 bool fullScreen = false;
 
 void atualizaCentroJanela(int w, int h)
@@ -30,11 +21,13 @@ void atualizaCentroJanela(int w, int h)
 
 void altFullScreen()
 {
+
+    ignoreWarp = true;
     firstMouse = true;
 
     if (!fullScreen)
     {
-        glutFullScreen(); // entra no fullscreen
+        glutFullScreen();
         fullScreen = true;
     }
     else
